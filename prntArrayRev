@@ -1,0 +1,146 @@
+;----------------------------------------------- 
+;- Niklas Andersson 
+;- CIS 333 - Assignment 4 
+;- 10.10.16
+;- Scott James 
+;----------------------------------------------- 
+ 
+            .MODEL SMALL 
+            
+            .STACK 100h
+            
+MAX_VALUE   EQU     50                         
+                          
+            ;Data declaration 
+             
+            .DATA 
+                                        
+array1      DB      MAX_VALUE DUP (?)
+cntr        DB      0                               
+             
+            .CODE 
+            
+             
+main:       mov ax, @DATA 
+            mov ds, ax      ;initalize data segment      
+                                
+            call clrScreen  ;clear emulator screen
+
+            ;fill array with ascending values  00-100
+            
+            mov cx, MAX_VALUE      ;loop counter
+            mov di, 00      ;initial array pointer at index
+            mov al, 02      ;initial array value
+                       
+            call fillArray  
+            
+            call prntAryRev           
+                                
+                                
+exit:       ;End program 
+             
+            mov ax, 4C00h 
+            int 21h 
+
+
+;-----------PROCEDURES ------------  
+
+clrScreen   PROC near
+             
+            mov ah, 06h     ;clear screen call 
+            mov bh, 07h     
+            mov cx, 0000h   ;row 0, col 0 
+            mov dh, 24d     ;row 24 
+            mov dl, 79d     ;row 79  
+            int 10h 
+            ret
+            
+clrScreen   ENDP
+
+;----------------------------------             
+
+fillArray   PROC near
+    
+fill:       mov array1[di],al   ;store the value   
+       
+            inc di          ;increment element index
+            add al, 2       ;decrement value to store by 2   
+            loop fill            
+            ret             ;array1 is now 00,02..98,100 
+    
+fillArray   ENDP             
+;---------------------------------- 
+
+prntAryRev  PROC near
+    
+            mov cntr, MAX_VALUE
+            mov di, MAX_VALUE - 1
+            
+print:      mov al, array1[di] 
+
+            mov ah, 00h     ;clear upper half of AX    
+            mov ch, 00h     ;ch boolean register
+            mov bx, 0064h   ;div 100 
+            mov dx, 0000h   ;clear upper half of 32-bit DX:AX
+            div bx          ;DX:AX / 100
+            
+            mov cl, dl      ;copy dl(Remainder) to cl
+           
+;100            
+chkDigit_1: cmp al, 00h     ;check for digit in hundred's place
+            je divby10
+            
+digit_1:    add al, 30h     ;add 30h to digit_1 for ascii representation 
+            
+            mov ah, 02h     ;print digit_1
+            mov dl, al
+            int 21h
+            
+            mov ch, 01h     ;printed first character (true)
+
+divby10:    mov ah, 00h     ;clear upper half of ax register    
+            mov al, cl      ;copy cl(Remainder) to al                       
+                      
+            mov bx, 000Ah   ;div 10                    
+            mov dx, 0000h   ;clear upper half of 32-bit DX:AX 
+            div bx          ;DX:AX / 10
+            
+            mov cl, dl      ;copy dl(Remainder) to cl
+;020            
+digit_2:    add al, 30h     ;add 30h to digit_2 for ascii representation
+            
+            cmp ch, 01h     ;if digit_1 printed, always print digit_2
+            je printDigit_2
+            
+            cmp al, 30h     ;leading 0? don't print
+            je digit_3
+
+printDigit_2:
+            mov ah, 02h     ;print digit_2
+            mov dl, al
+            int 21h
+            
+;003                           
+digit_3:    add cl, 30h     ;add 30h to digit_3 for ascii representation
+
+            mov ah, 02h     ;print digit_3
+            mov dl, cl
+            int 21h 
+            
+            
+            mov dx,13       ;print carriage return
+            mov ah,2
+            int 21h  
+            mov dx,10       ;print line feed
+            mov ah,2
+            int 21h  
+            
+            dec di          ;dec array1 pntr
+            dec cntr        ;dec loop cntr
+            jne print
+            ret    
+            
+prntAryRev  ENDP            
+;----------------------------------
+
+            END main
